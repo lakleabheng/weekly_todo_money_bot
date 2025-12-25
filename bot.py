@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 import db
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "8420238541:AAH88sZBUWSf3gT8E66UHP-HTZg-PlBMqyI"
 
 conn = sqlite3.connect("todo.db", check_same_thread=False)
 cursor = conn.cursor()
