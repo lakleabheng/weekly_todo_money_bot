@@ -1,7 +1,6 @@
 import sqlite3
-from datetime import datetime, time
+from datetime import datetime, time, timezone, timedelta
 import os
-import pytz
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -14,7 +13,9 @@ from telegram.ext import (
 # ==============================
 TOKEN = os.getenv("BOT_TOKEN")  # Set in Railway Variables
 DB_NAME = "todo.db"
-TIMEZONE = "Asia/Phnom_Penh"  # adjust to your timezone
+# Set your timezone offset here (UTC+7 for Phnom Penh)
+TZ_OFFSET = 7
+TZ = timezone(timedelta(hours=TZ_OFFSET))
 
 # ==============================
 # DATABASE
@@ -74,7 +75,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c = conn.cursor()
     c.execute(
         "INSERT INTO todos (user_id, task, amount, weekday, created_at) VALUES (?, ?, ?, ?, ?)",
-        (user_id, task, amount, day, datetime.now().isoformat())
+        (user_id, task, amount, day, datetime.now(TZ).isoformat())
     )
     conn.commit()
     conn.close()
@@ -158,11 +159,10 @@ def main():
     app.add_handler(CommandHandler("list", list_todos))
     app.add_handler(CommandHandler("summary", summary))
 
-    # Schedule Sunday report at 20:00
-    tz = pytz.timezone(TIMEZONE)
+    # Schedule Sunday report at 20:00 in your timezone
     app.job_queue.run_daily(
         sunday_report,
-        time(hour=20, minute=0, tzinfo=tz),
+        time(hour=20, minute=0, tzinfo=TZ),
         name="sunday_report"
     )
 
