@@ -5,7 +5,10 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 import db
 
-TOKEN = "8420238541:AAH88sZBUWSf3gT8E66UHP-HTZg-PlBMqyI"
+import os
+TOKEN = os.getenv("BOT_TOKEN")
+print("Token is:", TOKEN)  # Should print your full token in Railway logs
+
 
 conn = sqlite3.connect("todo.db", check_same_thread=False)
 cursor = conn.cursor()
