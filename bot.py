@@ -7,7 +7,6 @@ import db
 
 import os
 TOKEN = os.getenv("BOT_TOKEN")
-print("Token is:", TOKEN)  # Should print your full token in Railway logs
 
 
 conn = sqlite3.connect("todo.db", check_same_thread=False)
