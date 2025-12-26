@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime, time
 import os
+import pytz
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -13,6 +14,7 @@ from telegram.ext import (
 # ==============================
 TOKEN = os.getenv("BOT_TOKEN")  # Set in Railway Variables
 DB_NAME = "todo.db"
+TIMEZONE = "Asia/Phnom_Penh"  # adjust to your timezone
 
 # ==============================
 # DATABASE
@@ -121,6 +123,7 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # SUNDAY REPORT
 # ==============================
 async def sunday_report(context: ContextTypes.DEFAULT_TYPE):
+    print("🔔 Sunday report triggered")  # Debug log
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute(
@@ -130,10 +133,13 @@ async def sunday_report(context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     for user_id, total in rows:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=f"📅 Sunday Summary\n💰 Total spent: ${total}"
-        )
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"📅 Sunday Summary\n💰 Total spent: ${total}"
+            )
+        except Exception as e:
+            print(f"❌ Failed to send to {user_id}: {e}")
 
 # ==============================
 # MAIN
@@ -153,9 +159,10 @@ def main():
     app.add_handler(CommandHandler("summary", summary))
 
     # Schedule Sunday report at 20:00
+    tz = pytz.timezone(TIMEZONE)
     app.job_queue.run_daily(
         sunday_report,
-        time(hour=20, minute=0),
+        time(hour=20, minute=0, tzinfo=tz),
         name="sunday_report"
     )
 
