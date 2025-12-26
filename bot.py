@@ -1,19 +1,17 @@
+import sqlite3
+from datetime import datetime, time
+import os
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes
 )
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
-import sqlite3
-import os
 
 # ==============================
 # CONFIG
 # ==============================
 TOKEN = os.getenv("BOT_TOKEN")  # Set in Railway Variables
-
 DB_NAME = "todo.db"
 
 # ==============================
@@ -36,7 +34,7 @@ def init_db():
     conn.close()
 
 # ==============================
-# COMMANDS
+# COMMAND HANDLERS
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -51,7 +49,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace("/add", "").strip()
-
     parts = text.split()
 
     if len(parts) < 3:
@@ -62,7 +59,6 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     day = parts[-1].capitalize()
-
     try:
         amount = float(parts[-2])
         task = " ".join(parts[:-2])
@@ -122,21 +118,19 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"📊 Weekly Total: 💰 ${total}")
 
 # ==============================
-# WEEKLY SUNDAY REPORT
+# SUNDAY REPORT
 # ==============================
-async def sunday_report(app):
+async def sunday_report(context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""
-        SELECT user_id, SUM(amount)
-        FROM todos
-        GROUP BY user_id
-    """)
+    c.execute(
+        "SELECT user_id, SUM(amount) FROM todos GROUP BY user_id"
+    )
     rows = c.fetchall()
     conn.close()
 
     for user_id, total in rows:
-        await app.bot.send_message(
+        await context.bot.send_message(
             chat_id=user_id,
             text=f"📅 Sunday Summary\n💰 Total spent: ${total}"
         )
@@ -152,21 +146,18 @@ def main():
 
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Add command handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("add", add))
     app.add_handler(CommandHandler("list", list_todos))
     app.add_handler(CommandHandler("summary", summary))
 
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
+    # Schedule Sunday report at 20:00
+    app.job_queue.run_daily(
         sunday_report,
-        "cron",
-        day_of_week="sun",
-        hour=20,
-        minute=0,
-        args=[app]
+        time(hour=20, minute=0),
+        name="sunday_report"
     )
-    scheduler.start()
 
     print("🤖 Bot running...")
     app.run_polling()
